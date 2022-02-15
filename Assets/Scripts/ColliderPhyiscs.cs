@@ -15,22 +15,48 @@ public static class ColliderPhyiscs
         return box;
     }
 
-    public static bool Collide(GameObject first, GameObject second)
+    public static Sphere Sphere(GameObject goToSphere)
     {
-        AABB box1;
-        box1.max = first.transform.position +
-            new Vector3(first.transform.localScale.x / 2, first.transform.localScale.y / 2, first.transform.localScale.z / 2);
-        box1.min = first.transform.position +
-            new Vector3(-first.transform.localScale.x / 2, -first.transform.localScale.y / 2, -first.transform.localScale.z / 2);
+        Sphere sphere;
+        sphere.position = goToSphere.transform.position;
+        sphere.radius = goToSphere.transform.localScale.magnitude;
 
-        AABB box2;
-        box2.max = second.transform.position +
-            new Vector3(second.transform.localScale.x / 2, second.transform.localScale.y / 2, second.transform.localScale.z / 2);
-        box2.min = second.transform.position +
-            new Vector3(-second.transform.localScale.x / 2, -second.transform.localScale.y / 2, -second.transform.localScale.z / 2);
-
-        return Intersect(box1, box2);
+        return sphere;
     }
+
+    public static bool Collide(Shape first, Shape second)
+    {
+        if (first.isBox)
+        {
+            AABB box1 = first.box;
+            if (second.isBox)
+            {
+                AABB box2 = second.box;
+                return AABBtoAABB(box1, box2);
+            }
+            else
+            {
+                Sphere sphere2 = second.sphere;
+                return SphereToBox(sphere2, box1);
+            }
+        }
+        else
+        {
+            Sphere sphere1 = first.sphere;
+            if (second.isBox)
+            {
+                AABB box2 = second.box;
+                return SphereToBox(sphere1, box2);
+            }
+            else
+            {
+                Sphere sphere2 = second.sphere;
+                return SpheretoSphere(sphere1, sphere2);
+            }
+        }
+    }
+
+
 
     public static bool TestAABBAABB(AABB a, AABB b)
     {
@@ -63,11 +89,38 @@ public static class ColliderPhyiscs
         return tmax >= tmin;
     }
 
-    public static bool Intersect(AABB box1, AABB box2)
+    public static bool AABBtoAABB(AABB box1, AABB box2)
     {
         return (box1.min.x <= box2.max.x && box1.max.x >= box2.min.x) &&
          (box1.min.y <= box2.max.y && box1.max.y >= box2.min.y) &&
          (box1.min.z <= box2.max.z && box1.max.z >= box2.min.z);
+    }
+
+    public static bool SpheretoSphere(Sphere sphere, Sphere other)
+    {
+        var distance = Mathf.Sqrt((sphere.position.x - other.position.x) * (sphere.position.x - other.position.x) +
+            (sphere.position.y - other.position.y) * (sphere.position.y - other.position.y) +
+            (sphere.position.z - other.position.z) * (sphere.position.z - other.position.z));
+
+        return distance < (sphere.radius + other.radius);
+    }
+
+    public static bool BoxToSphere(AABB box, Sphere sphere)
+    {
+        return SphereToBox(sphere, box);
+    }
+
+    public static bool SphereToBox(Sphere sphere, AABB box)
+    {
+        var x = Mathf.Max(box.min.x, Mathf.Min(sphere.position.x, box.max.x));
+        var y = Mathf.Max(box.min.y, Mathf.Min(sphere.position.y, box.max.y));
+        var z = Mathf.Max(box.min.z, Mathf.Min(sphere.position.z, box.max.z));
+
+        var distance = Mathf.Sqrt((x - sphere.position.x) * (x - sphere.position.x) +
+                         (y - sphere.position.y) * (y - sphere.position.y) +
+                         (z - sphere.position.z) * (z - sphere.position.z));
+
+        return distance < sphere.radius;
     }
 
     public static Vector3 PointOfContact(Vector3 point, GameObject b)

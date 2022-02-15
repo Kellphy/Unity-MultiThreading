@@ -8,13 +8,34 @@ public class DummySpawner : MonoBehaviour
 {
     public int copies;
     public GameObject dummy;
-    public List<GameObject> dummies;
+    public GameObject dummySphere;
+
+    public List<GameObjectShape> dummies = new List<GameObjectShape>();
 
     public bool GPU;
+    public bool cubesOnly;
+    [System.Serializable]
+    public struct GameObjectShape
+    {
+        public GameObject go;
+        public bool isBox;
+    }
+    public struct Shape
+    {
+        public bool isBox;
+        public AABB box;
+        public Sphere sphere;
+    }
     public struct AABB
     {
         public Vector3 min;
         public Vector3 max;
+    }
+
+    public struct Sphere
+    {
+        public Vector3 position;
+        public float radius;
     }
 
     public struct CollidedWith
@@ -27,7 +48,9 @@ public class DummySpawner : MonoBehaviour
     {
         for (int i = 0; i < copies; i++)
         {
-            dummies.Add(Instantiate(dummy, new Vector3(Random.Range(-50f, 50f), 1f, Random.Range(-50f, 50f)), Quaternion.identity));
+            int min = cubesOnly ? 1 : 0;
+            GameObjectShape toSpawn = Random.Range(min, 2) == 0 ? new GameObjectShape { isBox = false, go = dummySphere } : new GameObjectShape { isBox = true, go = dummy };
+            dummies.Add(new GameObjectShape { isBox = toSpawn.isBox, go = Instantiate(toSpawn.go, new Vector3(Random.Range(-50f, 50f), 1f, Random.Range(-50f, 50f)), Quaternion.identity, transform) });
         }
     }
 
@@ -39,18 +62,43 @@ public class DummySpawner : MonoBehaviour
             {
                 for (int j = i + 1; j < dummies.Count; j++)
                 {
-                    if (ColliderPhyiscs.Collide(dummies[i], dummies[j]))
+                    Shape first = new Shape();
+                    Shape second = new Shape();
+
+                    if (dummies[i].isBox)
+                    {
+                        first.isBox = true;
+                        first.box = ColliderPhyiscs.Box(dummies[i].go);
+                    }
+                    else
+                    {
+                        first.isBox = false;
+                        first.sphere = ColliderPhyiscs.Sphere(dummies[i].go);
+                    }
+
+                    if (dummies[j].isBox)
+                    {
+                        second.isBox = true;
+                        second.box = ColliderPhyiscs.Box(dummies[j].go);
+                    }
+                    else
+                    {
+                        second.isBox = false;
+                        second.sphere = ColliderPhyiscs.Sphere(dummies[j].go);
+                    }
+
+                    if (ColliderPhyiscs.Collide(first, second))
                     {
                         Debug.Log($"Collision between: {i} and {j}");
 
                         //Feedback
                         {
-                            if (dummies[i].TryGetComponent(out DummyMovement dmI))
+                            if (dummies[i].go.TryGetComponent(out DummyMovement dmI))
                             {
-                                Vector3 poc = ColliderPhyiscs.PointOfContact(dummies[j].transform.position, dummies[i]);
+                                Vector3 poc = ColliderPhyiscs.PointOfContact(dummies[j].go.transform.position, dummies[i].go);
 
-                                dmI.hMove = (dummies[i].transform.position.x - poc.x) < 0 ? -dmI.RandomSpeed() : dmI.RandomSpeed();
-                                dmI.vMove = (dummies[i].transform.position.z - poc.z) < 0 ? -dmI.RandomSpeed() : dmI.RandomSpeed();
+                                dmI.hMove = (dummies[i].go.transform.position.x - poc.x) < 0 ? -dmI.RandomSpeed() : dmI.RandomSpeed();
+                                dmI.vMove = (dummies[i].go.transform.position.z - poc.z) < 0 ? -dmI.RandomSpeed() : dmI.RandomSpeed();
 
                                 //rbI.velocity = new Vector3(
                                 //    dummies[i].transform.position.x - poc.x,
@@ -64,12 +112,12 @@ public class DummySpawner : MonoBehaviour
 
                             }
 
-                            if (dummies[j].TryGetComponent(out DummyMovement dmJ))
+                            if (dummies[j].go.TryGetComponent(out DummyMovement dmJ))
                             {
-                                Vector3 poc = ColliderPhyiscs.PointOfContact(dummies[i].transform.position, dummies[j]);
+                                Vector3 poc = ColliderPhyiscs.PointOfContact(dummies[i].go.transform.position, dummies[j].go);
 
-                                dmJ.hMove = (dummies[j].transform.position.x - poc.x) < 0 ? -dmJ.RandomSpeed() : dmJ.RandomSpeed();
-                                dmJ.vMove = (dummies[j].transform.position.z - poc.z) < 0 ? -dmJ.RandomSpeed() : dmJ.RandomSpeed();
+                                dmJ.hMove = (dummies[j].go.transform.position.x - poc.x) < 0 ? -dmJ.RandomSpeed() : dmJ.RandomSpeed();
+                                dmJ.vMove = (dummies[j].go.transform.position.z - poc.z) < 0 ? -dmJ.RandomSpeed() : dmJ.RandomSpeed();
 
                                 //rbJ.velocity = new Vector3(
                                 //    dummies[j].transform.position.x - poc.x,
@@ -85,7 +133,7 @@ public class DummySpawner : MonoBehaviour
 
                             }
 
-                            if (dummies[i].TryGetComponent(out Renderer rndI))
+                            if (dummies[i].go.TryGetComponent(out Renderer rndI))
                             {
                                 if (rndI.material.color == Color.green)
                                 {
@@ -97,7 +145,7 @@ public class DummySpawner : MonoBehaviour
                                 }
                             }
 
-                            if (dummies[j].TryGetComponent(out Renderer rndJ))
+                            if (dummies[j].go.TryGetComponent(out Renderer rndJ))
                             {
                                 if (rndJ.material.color == Color.green)
                                 {
@@ -115,12 +163,19 @@ public class DummySpawner : MonoBehaviour
         }
         else
         {
-            var aabbList = new NativeArray<AABB>(dummies.Count, Allocator.Persistent);
+            var aabbList = new NativeArray<Shape>(dummies.Count, Allocator.Persistent);
             var colidedList = new NativeArray<CollidedWith>(dummies.Count, Allocator.Persistent);
 
             for (var i = 0; i < aabbList.Length; i++)
             {
-                aabbList[i] = ColliderPhyiscs.Box(dummies[i]);
+                if (dummies[i].isBox)
+                {
+                    aabbList[i] = new Shape { isBox = true, box = ColliderPhyiscs.Box(dummies[i].go) };
+                }
+                else
+                {
+                    aabbList[i] = new Shape { isBox = false, sphere = ColliderPhyiscs.Sphere(dummies[i].go) };
+                }
             }
 
             var job = new VelocityJob()
@@ -139,15 +194,15 @@ public class DummySpawner : MonoBehaviour
                 {
                     //Debug.Log($"Collision between: {i} and {job.Colided[i].With}");
 
-                    if (dummies[i].TryGetComponent(out DummyMovement dmI))
+                    if (dummies[i].go.TryGetComponent(out DummyMovement dmI))
                     {
-                        Vector3 poc = ColliderPhyiscs.PointOfContact(dummies[job.Collided[i].With].transform.position, dummies[i]);
+                        Vector3 poc = ColliderPhyiscs.PointOfContact(dummies[job.Collided[i].With].go.transform.position, dummies[i].go);
 
-                        dmI.hMove = (dummies[i].transform.position.x - poc.x) < 0 ? -dmI.RandomSpeed() : dmI.RandomSpeed();
-                        dmI.vMove = (dummies[i].transform.position.z - poc.z) < 0 ? -dmI.RandomSpeed() : dmI.RandomSpeed();
+                        dmI.hMove = (dummies[i].go.transform.position.x - poc.x) < 0 ? -dmI.RandomSpeed() : dmI.RandomSpeed();
+                        dmI.vMove = (dummies[i].go.transform.position.z - poc.z) < 0 ? -dmI.RandomSpeed() : dmI.RandomSpeed();
                     }
 
-                    if (dummies[i].TryGetComponent(out Renderer rndI))
+                    if (dummies[i].go.TryGetComponent(out Renderer rndI))
                     {
                         if (rndI.material.color == Color.green)
                         {
@@ -170,7 +225,7 @@ public class DummySpawner : MonoBehaviour
     struct VelocityJob : IJobParallelFor
     {
         [ReadOnly]
-        public NativeArray<AABB> Colliders;
+        public NativeArray<Shape> Colliders;
 
         public NativeArray<CollidedWith> Collided;
         public void Execute(int i)
@@ -178,9 +233,9 @@ public class DummySpawner : MonoBehaviour
             //for(int j = 0; j < Colliders.Length && j != i ; j++)
             for (int j = i - 1; j >= 0; j--)
             {
-                if (ColliderPhyiscs.Intersect(Colliders[i], Colliders[j]))
+                if (ColliderPhyiscs.Collide(Colliders[i], Colliders[j]))
                 {
-                    Collided[i] = new CollidedWith {Collided = true, With = j };
+                    Collided[i] = new CollidedWith { Collided = true, With = j };
                 }
             }
         }
