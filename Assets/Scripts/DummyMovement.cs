@@ -4,6 +4,7 @@ using UnityEngine;
 
 public class DummyMovement : MonoBehaviour
 {
+    public bool grounded;
     Rigidbody rb;
     Vector3 moveDirection;
     float speed = 10f;
@@ -31,11 +32,25 @@ public class DummyMovement : MonoBehaviour
 
             moveDirection *= speed;
 
-            if (Input.GetButton("Jump"))
-                moveDirection.y = jumpSpeed;
+            //if (Input.GetButton("Jump"))
+            //    moveDirection.y = jumpSpeed;
 
         }
-        //moveDirection.y -= gravity* speed * Time.deltaTime;
+
+        float distToGround = gameObject.transform.localScale.y / 2;
+
+        if (!Physics.Raycast(transform.position, -Vector3.up, distToGround+ 0.1f))
+        {
+            moveDirection.y -= Mathf.Pow(gravity,2) * Time.deltaTime;
+            grounded = false;
+        }
+        else
+        {
+            grounded = true;
+        }
+
+        Debug.DrawRay(transform.position + Vector3.down * (distToGround+0.1f), Vector3.up*3, Color.blue) ;
+
 
         rb.velocity = moveDirection;
 

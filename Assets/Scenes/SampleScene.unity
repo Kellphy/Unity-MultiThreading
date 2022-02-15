@@ -469,8 +469,6 @@ MonoBehaviour:
   dummy: {fileID: 854022549885373609, guid: 8aacef9917614a0478301566cf2302a3, type: 3}
   dummySphere: {fileID: 854022549885373609, guid: d6fa14cf9c587c54cadca6118dbcc717, type: 3}
   dummies:
-  - go: {fileID: 5978578741522474454}
-    isBox: 1
   - go: {fileID: 1692938886}
     isBox: 1
   - go: {fileID: 491295718}
@@ -479,7 +477,9 @@ MonoBehaviour:
     isBox: 1
   - go: {fileID: 1551422115}
     isBox: 1
-  GPU: 1
+  - go: {fileID: 5978578741522474454}
+    isBox: 1
+  GPU: 0
   cubesOnly: 1
 --- !u!1 &1551422115
 GameObject:
