@@ -8,8 +8,8 @@ public class DummyMovement : MonoBehaviour
     Rigidbody rb;
     Vector3 moveDirection;
     float speed = 10f;
-    float jumpSpeed = 10f;
-    float gravity = 9.81f;
+    float jumpSpeed = 1f;
+    float gravity = 5f;
 
     public float hMove;
     public float vMove;
@@ -18,30 +18,15 @@ public class DummyMovement : MonoBehaviour
     {
         rb = GetComponent<Rigidbody>();
         StartCoroutine(RandomPattern());
-
     }
 
-    void Update()
+    void FixedUpdate()
     {
-
-        //if (controller.isGrounded)
-        {
-            moveDirection = new Vector3(hMove, 0, vMove);
-
-            //moveDirection = transform.TransformDirection(moveDirection);
-
-            moveDirection *= speed;
-
-            //if (Input.GetButton("Jump"))
-            //    moveDirection.y = jumpSpeed;
-
-        }
-
         float distToGround = gameObject.transform.localScale.y / 2;
 
         if (!Physics.Raycast(transform.position, -Vector3.up, distToGround+ 0.1f))
         {
-            moveDirection.y -= Mathf.Pow(gravity,2) * Time.deltaTime;
+            moveDirection.y -= gravity * Time.deltaTime;
             grounded = false;
         }
         else
@@ -51,11 +36,33 @@ public class DummyMovement : MonoBehaviour
 
         Debug.DrawRay(transform.position + Vector3.down * (distToGround+0.1f), Vector3.up*3, Color.blue) ;
 
+        if (grounded)
+        {
+            moveDirection = new Vector3(hMove, 0, vMove);
 
+            if (Input.GetButton("Jump"))
+                moveDirection.y = jumpSpeed;
+
+            moveDirection *= speed;
+        }
+        #region Bounds
+        float bounds = 75f;
+        if (transform.position.x + 0.5f > bounds || transform.position.x + 0.5f < -bounds)
+        {
+            moveDirection.x *= -1;
+            transform.position = new Vector3() { x = (bounds -1)* Mathf.Sign(transform.position.x), y = transform.position.y, z = transform.position.z };
+        }
+        if (transform.position.z + 0.5f > bounds || transform.position.z + 0.5f < -bounds)
+        {
+            moveDirection.z *= -1;
+            transform.position = new Vector3() { x = transform.position.x, y = transform.position.y, z = (bounds - 1) * Mathf.Sign(transform.position.z) };
+        }
+        if(transform.position.y < 1f)
+        {
+            transform.position = new Vector3() { x = transform.position.x, y = 1f, z = transform.position.z };
+        }
+        #endregion
         rb.velocity = moveDirection;
-
-        //transform.Translate(moveDirection * Time.deltaTime);
-        //controller.Move(moveDirection * Time.deltaTime);
     }
     IEnumerator RandomPattern()
     {
@@ -67,7 +74,7 @@ public class DummyMovement : MonoBehaviour
         }
     }
 
-    public float RandomSpeed()
+    public float ObjectSpeed()
     {
         return Random.Range(-1.0f, 1.0f);
     }

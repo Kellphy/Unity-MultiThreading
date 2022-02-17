@@ -19,7 +19,7 @@ public static class ColliderPhyiscs
     {
         Sphere sphere;
         sphere.position = goToSphere.transform.position;
-        sphere.radius = goToSphere.transform.localScale.magnitude;
+        sphere.radius = goToSphere.transform.localScale.magnitude/2;
 
         return sphere;
     }

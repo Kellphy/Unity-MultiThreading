@@ -14,6 +14,7 @@ public class DummySpawner : MonoBehaviour
 
     public bool GPU;
     public bool cubesOnly;
+    public bool gravityTest;
     [System.Serializable]
     public struct GameObjectShape
     {
@@ -44,13 +45,35 @@ public class DummySpawner : MonoBehaviour
         public int With;
     }
 
+    NativeArray<Shape> shapeList;
+
     private void Start()
     {
         for (int i = 0; i < copies; i++)
         {
             int min = cubesOnly ? 1 : 0;
+
+            float spawnY = 1f;
+            if (gravityTest)
+            {
+               spawnY = Random.Range(50f, 100f);
+            }
             GameObjectShape toSpawn = Random.Range(min, 2) == 0 ? new GameObjectShape { isBox = false, go = dummySphere } : new GameObjectShape { isBox = true, go = dummy };
-            dummies.Add(new GameObjectShape { isBox = toSpawn.isBox, go = Instantiate(toSpawn.go, new Vector3(Random.Range(-50f, 50f), 1f, Random.Range(-50f, 50f)), Quaternion.identity, transform) });
+            dummies.Add(new GameObjectShape { isBox = toSpawn.isBox, go = Instantiate(toSpawn.go, new Vector3(Random.Range(-50f, 50f), spawnY, Random.Range(-50f, 50f)), Quaternion.identity, transform) });
+        }
+
+        shapeList = new NativeArray<Shape>(dummies.Count, Allocator.Persistent);
+
+        for (var i = 0; i < shapeList.Length; i++)
+        {
+            if (dummies[i].isBox)
+            {
+                shapeList[i] = new Shape { isBox = true, box = ColliderPhyiscs.Box(dummies[i].go) };
+            }
+            else
+            {
+                shapeList[i] = new Shape { isBox = false, sphere = ColliderPhyiscs.Sphere(dummies[i].go) };
+            }
         }
     }
 
@@ -97,8 +120,8 @@ public class DummySpawner : MonoBehaviour
                             {
                                 Vector3 poc = ColliderPhyiscs.PointOfContact(dummies[j].go.transform.position, dummies[i].go);
 
-                                dmI.hMove = (dummies[i].go.transform.position.x - poc.x) < 0 ? -dmI.RandomSpeed() : dmI.RandomSpeed();
-                                dmI.vMove = (dummies[i].go.transform.position.z - poc.z) < 0 ? -dmI.RandomSpeed() : dmI.RandomSpeed();
+                                dmI.hMove = (dummies[i].go.transform.position.x - poc.x) < 0 ? -dmI.ObjectSpeed() : dmI.ObjectSpeed();
+                                dmI.vMove = (dummies[i].go.transform.position.z - poc.z) < 0 ? -dmI.ObjectSpeed() : dmI.ObjectSpeed();
 
                                 //rbI.velocity = new Vector3(
                                 //    dummies[i].transform.position.x - poc.x,
@@ -116,8 +139,8 @@ public class DummySpawner : MonoBehaviour
                             {
                                 Vector3 poc = ColliderPhyiscs.PointOfContact(dummies[i].go.transform.position, dummies[j].go);
 
-                                dmJ.hMove = (dummies[j].go.transform.position.x - poc.x) < 0 ? -dmJ.RandomSpeed() : dmJ.RandomSpeed();
-                                dmJ.vMove = (dummies[j].go.transform.position.z - poc.z) < 0 ? -dmJ.RandomSpeed() : dmJ.RandomSpeed();
+                                dmJ.hMove = (dummies[j].go.transform.position.x - poc.x) < 0 ? -dmJ.ObjectSpeed() : dmJ.ObjectSpeed();
+                                dmJ.vMove = (dummies[j].go.transform.position.z - poc.z) < 0 ? -dmJ.ObjectSpeed() : dmJ.ObjectSpeed();
 
                                 //rbJ.velocity = new Vector3(
                                 //    dummies[j].transform.position.x - poc.x,
@@ -163,32 +186,19 @@ public class DummySpawner : MonoBehaviour
         }
         else
         {
-            var aabbList = new NativeArray<Shape>(dummies.Count, Allocator.Persistent);
-            var colidedList = new NativeArray<CollidedWith>(dummies.Count, Allocator.Persistent);
-
-            for (var i = 0; i < aabbList.Length; i++)
-            {
-                if (dummies[i].isBox)
-                {
-                    aabbList[i] = new Shape { isBox = true, box = ColliderPhyiscs.Box(dummies[i].go) };
-                }
-                else
-                {
-                    aabbList[i] = new Shape { isBox = false, sphere = ColliderPhyiscs.Sphere(dummies[i].go) };
-                }
-            }
+            NativeArray<CollidedWith> colidedList = new NativeArray<CollidedWith>(dummies.Count, Allocator.Persistent);
 
             var job = new VelocityJob()
             {
-                Colliders = aabbList,
+                Colliders = shapeList,
                 Collided = colidedList
             };
 
-            JobHandle jobHandle = job.Schedule(dummies.Count, 64);
+            JobHandle jobHandle = job.Schedule(dummies.Count, 32);
 
             jobHandle.Complete();
 
-            for (var i = 0; i < aabbList.Length; i++)
+            for (var i = 0; i < shapeList.Length; i++)
             {
                 if (job.Collided[i].Collided)
                 {
@@ -198,8 +208,8 @@ public class DummySpawner : MonoBehaviour
                     {
                         Vector3 poc = ColliderPhyiscs.PointOfContact(dummies[job.Collided[i].With].go.transform.position, dummies[i].go);
 
-                        dmI.hMove = (dummies[i].go.transform.position.x - poc.x) < 0 ? -dmI.RandomSpeed() : dmI.RandomSpeed();
-                        dmI.vMove = (dummies[i].go.transform.position.z - poc.z) < 0 ? -dmI.RandomSpeed() : dmI.RandomSpeed();
+                        dmI.hMove = (dummies[i].go.transform.position.x - poc.x) < 0 ? -dmI.ObjectSpeed() : dmI.ObjectSpeed();
+                        dmI.vMove = (dummies[i].go.transform.position.z - poc.z) < 0 ? -dmI.ObjectSpeed() : dmI.ObjectSpeed();
                     }
 
                     if (dummies[i].go.TryGetComponent(out Renderer rndI))
@@ -216,7 +226,6 @@ public class DummySpawner : MonoBehaviour
                 }
             }
 
-            aabbList.Dispose();
             colidedList.Dispose();
         }
     }

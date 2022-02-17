@@ -21,24 +21,9 @@ public class MovementSystem : MonoBehaviour
 
     void Update()
     {
-
-        //if (controller.isGrounded)
-        {
-            moveDirection = new Vector3(Input.GetAxis("Horizontal"), 0, Input.GetAxis("Vertical"));
-            //moveDirection = transform.TransformDirection(moveDirection);
-
-            moveDirection *= speed;
-
-            if (Input.GetButton("Jump"))
-                moveDirection.y = jumpSpeed;
-
-        }
-        //moveDirection.y -= gravity* speed * Time.deltaTime;
-
+        moveDirection = new Vector3(Input.GetAxis("Horizontal"), 0, Input.GetAxis("Vertical"));
+        moveDirection *= speed;
         rb.velocity = moveDirection;
-
-        //transform.Translate(moveDirection * Time.deltaTime);
-        //controller.Move(moveDirection * Time.deltaTime);
     }
 
 
