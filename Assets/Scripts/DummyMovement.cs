@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -45,7 +45,7 @@ public class DummyMovement : MonoBehaviour
 
             moveDirection *= speed;
         }
-        #region Bounds
+        #region Test Bounds
         float bounds = 75f;
         if (transform.position.x + 0.5f > bounds || transform.position.x + 0.5f < -bounds)
         {

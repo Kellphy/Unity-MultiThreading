@@ -49,7 +49,7 @@ MonoBehaviour:
   runInBackground: 1
   autoStartServerBuild: 1
   serverTickRate: 30
-  offlineScene: Assets/Scenes/EmptyScene.unity
+  offlineScene: 
   onlineScene: Assets/Scenes/MirrorScene.unity
   transport: {fileID: 7615489850429458212}
   networkAddress: localhost

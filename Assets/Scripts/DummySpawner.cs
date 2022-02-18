@@ -45,8 +45,6 @@ public class DummySpawner : MonoBehaviour
         public int With;
     }
 
-    NativeArray<Shape> shapeList;
-
     private void Start()
     {
         for (int i = 0; i < copies; i++)
@@ -62,19 +60,6 @@ public class DummySpawner : MonoBehaviour
             dummies.Add(new GameObjectShape { isBox = toSpawn.isBox, go = Instantiate(toSpawn.go, new Vector3(Random.Range(-50f, 50f), spawnY, Random.Range(-50f, 50f)), Quaternion.identity, transform) });
         }
 
-        shapeList = new NativeArray<Shape>(dummies.Count, Allocator.Persistent);
-
-        for (var i = 0; i < shapeList.Length; i++)
-        {
-            if (dummies[i].isBox)
-            {
-                shapeList[i] = new Shape { isBox = true, box = ColliderPhyiscs.Box(dummies[i].go) };
-            }
-            else
-            {
-                shapeList[i] = new Shape { isBox = false, sphere = ColliderPhyiscs.Sphere(dummies[i].go) };
-            }
-        }
     }
 
     private void Update()
@@ -187,6 +172,19 @@ public class DummySpawner : MonoBehaviour
         else
         {
             NativeArray<CollidedWith> colidedList = new NativeArray<CollidedWith>(dummies.Count, Allocator.Persistent);
+            NativeArray<Shape> shapeList = new NativeArray<Shape>(dummies.Count, Allocator.Persistent);
+
+            for (var i = 0; i < shapeList.Length; i++)
+            {
+                if (dummies[i].isBox)
+                {
+                    shapeList[i] = new Shape { isBox = true, box = ColliderPhyiscs.Box(dummies[i].go) };
+                }
+                else
+                {
+                    shapeList[i] = new Shape { isBox = false, sphere = ColliderPhyiscs.Sphere(dummies[i].go) };
+                }
+            }
 
             var job = new VelocityJob()
             {
@@ -202,7 +200,7 @@ public class DummySpawner : MonoBehaviour
             {
                 if (job.Collided[i].Collided)
                 {
-                    //Debug.Log($"Collision between: {i} and {job.Colided[i].With}");
+                    //Debug.Log($"Collision between: {i} and {job.Collided[i].With}");
 
                     if (dummies[i].go.TryGetComponent(out DummyMovement dmI))
                     {
@@ -226,6 +224,7 @@ public class DummySpawner : MonoBehaviour
                 }
             }
 
+            shapeList.Dispose();
             colidedList.Dispose();
         }
     }
@@ -239,8 +238,8 @@ public class DummySpawner : MonoBehaviour
         public NativeArray<CollidedWith> Collided;
         public void Execute(int i)
         {
-            //for(int j = 0; j < Colliders.Length && j != i ; j++)
-            for (int j = i - 1; j >= 0; j--)
+            for (int j = 0; j < Colliders.Length && j != i; j++)
+            //for (int j = i - 1; j >= 0; j--)
             {
                 if (ColliderPhyiscs.Collide(Colliders[i], Colliders[j]))
                 {

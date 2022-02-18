@@ -28,30 +28,24 @@ public static class ColliderPhyiscs
     {
         if (first.isBox)
         {
-            AABB box1 = first.box;
             if (second.isBox)
             {
-                AABB box2 = second.box;
-                return AABBtoAABB(box1, box2);
+                return AABBtoAABB(first.box, second.box);
             }
             else
             {
-                Sphere sphere2 = second.sphere;
-                return SphereToBox(sphere2, box1);
+                return SphereToBox(second.sphere, first.box);
             }
         }
         else
         {
-            Sphere sphere1 = first.sphere;
             if (second.isBox)
             {
-                AABB box2 = second.box;
-                return SphereToBox(sphere1, box2);
+                return SphereToBox(first.sphere, second.box);
             }
             else
             {
-                Sphere sphere2 = second.sphere;
-                return SpheretoSphere(sphere1, sphere2);
+                return SpheretoSphere(first.sphere, second.sphere);
             }
         }
     }
